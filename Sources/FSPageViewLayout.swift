@@ -128,7 +128,8 @@ class FSPagerViewLayout: UICollectionViewLayout {
         
         var origin = startPosition
         let maxPosition = self.scrollDirection == .horizontal ? min(rect.maxX,self.contentSize.width-self.actualItemSize.width-self.leadingSpacing) : min(rect.maxY,self.contentSize.height-self.actualItemSize.height-self.leadingSpacing)
-        while origin <= maxPosition {
+        // https://stackoverflow.com/a/10335601/2398107
+        while origin-maxPosition <= max(CGFloat(100.0) * .ulpOfOne * fabs(origin+maxPosition), .leastNonzeroMagnitude) {
             let indexPath = IndexPath(item: itemIndex%self.numberOfItems, section: itemIndex/self.numberOfItems)
             let attributes = self.layoutAttributesForItem(at: indexPath) as! FSPagerViewLayoutAttributes
             self.applyTransform(to: attributes, with: self.pagerView?.transformer)
@@ -257,11 +258,12 @@ class FSPagerViewLayout: UICollectionViewLayout {
         guard let collectionView = self.collectionView, let pagerView = self.pagerView else {
             return
         }
-        let currentIndex = pagerView.currentIndex
+        let currentIndex = max(0, min(pagerView.currentIndex, pagerView.numberOfItems - 1))
         let newIndexPath = IndexPath(item: currentIndex, section: self.isInfinite ? self.numberOfSections/2 : 0)
         let contentOffset = self.contentOffset(for: newIndexPath)
         let newBounds = CGRect(origin: contentOffset, size: collectionView.frame.size)
         collectionView.bounds = newBounds
+        pagerView.currentIndex = currentIndex;
     }
     
     fileprivate func applyTransform(to attributes: FSPagerViewLayoutAttributes, with transformer: FSPagerViewTransformer?) {
